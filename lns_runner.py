@@ -1,28 +1,53 @@
 from __future__ import annotations
 
+import random
+import sys
 from pathlib import Path
+from typing import List
 
-from lns import Problem
-from ortools.constraint_solver import routing_enums_pb2
-from ortools.constraint_solver import pywrapcp
+from lns import Problem, Solution
+from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
 
-problem = Path("/workspaces/cvrptw/testcases/C101.txt")
+def to_solution(assignment: pywrapcp.Assignment, *, data: Problem, routing: pywrapcp.RoutingModel) -> Solution:
+    routes: List[List[int]] = []
+    if assignment is not None:
+        for vehicle in range(data.vehicles_count):
+            index = routing.Start(vehicle)
+            route: List[int] = []
+
+            while not routing.IsEnd(index):
+                route.append(manager.IndexToNode(index))
+                index = assignment.Value(routing.NextVar(index))
+
+            route.append(manager.IndexToNode(index))
+
+            if any(node != data.depot for node in route):
+                routes.append(route)
+
+    return Solution(
+        cost=float("nan") if assignment is None else assignment.ObjectiveValue() / 100,
+        feasible=assignment is not None,
+        routes=routes,
+    )
+
+
+problem = Path(sys.argv[1])
 data = Problem.from_file(problem)
 
 
 manager = pywrapcp.RoutingIndexManager(
     len(data.time_matrix),
-    len(data.vehicle_capacities),
+    data.vehicles_count,
     data.depot,
 )
 
 
 # @functools.cache
-def time_callback_with_service(src: int, dst: int) -> float:
+def time_callback_with_service(src: int, dst: int) -> int:
     src_node = manager.IndexToNode(src)
     dst_node = manager.IndexToNode(dst)
-    return data.time_matrix[src_node][dst_node] + data.service_times[dst_node]
+    return data.service_times[src_node] + data.time_matrix[src_node][dst_node]
 
 
 def demand_callback(src: int) -> int:
@@ -59,17 +84,17 @@ for index, time_window in enumerate(data.time_windows):
     node_index = manager.NodeToIndex(index)
     time_dimension.CumulVar(node_index).SetRange(*time_window)
 
-for vehicle in range(len(data.vehicle_capacities)):
+for vehicle in range(data.vehicles_count):
     index = routing.Start(vehicle)
     time_dimension.CumulVar(index).SetRange(*data.time_windows[data.depot])
 
-for vehicle in range(len(data.vehicle_capacities)):
+for vehicle in range(data.vehicles_count):
     routing.AddVariableMinimizedByFinalizer(time_dimension.CumulVar(routing.Start(vehicle)))
     routing.AddVariableMinimizedByFinalizer(time_dimension.CumulVar(routing.End(vehicle)))
 
 search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-search_parameters.first_solution_strategy = (
-    routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-)
+search_parameters.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
 
-solution = routing.SolveWithParameters(search_parameters)
+assignment = routing.SolveWithParameters(search_parameters)
+solution = to_solution(assignment, data=data, routing=routing)
+print(solution)

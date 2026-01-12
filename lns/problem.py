@@ -16,11 +16,15 @@ DATA_PATTERN = re.compile(r"^\s*\d+\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\
 class Problem:
     name: str
     vehicle_capacities: List[int]
-    time_matrix: List[List[float]]
+    time_matrix: List[List[int]]
     demands: List[int]
     time_windows: List[Tuple[int, int]]
     service_times: List[int]
     depot: Literal[0] = 0
+
+    @property
+    def vehicles_count(self) -> int:
+        return len(self.vehicle_capacities)
 
     @classmethod
     def from_file(cls, path: Path) -> Problem:
@@ -56,13 +60,13 @@ class Problem:
             xs.append(x)
             ys.append(y)
             demands.append(demand)
-            time_windows.append((ready_time, due_date))
-            service_times.append(service_time)
+            time_windows.append((100 * ready_time, 100 * due_date))
+            service_times.append(100 * service_time)
 
         vehicle_capacities = [capacity] * vehicles_count
         time_matrix = [
             [
-                ((xs[i] - xs[j]) ** 2 + (ys[i] - ys[j]) ** 2) ** 0.5
+                int(100 * (((xs[i] - xs[j]) ** 2 + (ys[i] - ys[j]) ** 2) ** 0.5))
                 for j in range(len(xs))
             ]
             for i in range(len(xs))
