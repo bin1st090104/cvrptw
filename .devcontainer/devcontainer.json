@@ -1,0 +1,26 @@
+{
+    "name": "codespaces",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.autopep8",
+                "ms-python.mypy-type-checker",
+                "ms-python.python"
+            ],
+            "settings": {
+                "autopep8.cwd": "${containerWorkspaceFolder}",
+                "editor.formatOnSave": true,
+                "editor.tabSize": 4,
+                "extensions.ignoreRecommendations": false,
+                "files.insertFinalNewline": true,
+                "git.autorefresh": true,
+                "git.enabled": true,
+                "python.analysis.typeCheckingMode": "standard",
+                "python.defaultInterpreterPath": "/venv/bin/python"
+            }
+        }
+    },
+    "dockerComposeFile": "compose.yml",
+    "service": "devcontainer",
+    "workspaceFolder": "/workspaces/cvrptw"
+}
