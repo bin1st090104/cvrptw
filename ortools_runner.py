@@ -1,15 +1,26 @@
 from __future__ import annotations
 
-import random
-import sys
+import argparse
 from pathlib import Path
-from typing import List
+from typing import List, Literal, TYPE_CHECKING
 
-from lns import Problem, Solution
-from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+from cvrptw import Problem, Solution
+from ortools.constraint_solver import pywrapcp, routing_enums_pb2  # type: ignore
 
 
-def to_solution(assignment: pywrapcp.Assignment, *, data: Problem, routing: pywrapcp.RoutingModel) -> Solution:
+class Namespace(argparse.Namespace):
+    if TYPE_CHECKING:
+        problem: Path
+        algorithm: Literal["greedy-descent", "guided-local-search", "simulated-annealing", "tabu-search", "generic-tabu-search"]
+
+
+def to_solution(
+    assignment: pywrapcp.Assignment,
+    *,
+    data: Problem,
+    manager: pywrapcp.RoutingIndexManager,
+    routing: pywrapcp.RoutingModel,
+) -> Solution:
     routes: List[List[int]] = []
     if assignment is not None:
         for vehicle in range(data.vehicles_count):
@@ -32,8 +43,26 @@ def to_solution(assignment: pywrapcp.Assignment, *, data: Problem, routing: pywr
     )
 
 
-problem = Path(sys.argv[1])
-data = Problem.from_file(problem)
+parser = argparse.ArgumentParser(
+    description="Solve CVRPTW using OR-Tools local search algorithms",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument("problem", type=Path, help="Path to the problem file")
+parser.add_argument(
+    "-a", "--algorithm",
+    type=str,
+    choices=[
+        "greedy-descent",
+        "guided-local-search",
+        "simulated-annealing",
+        "tabu-search",
+        "generic-tabu-search",
+    ],
+    default="guided-local-search",
+    help="Local search algorithm to use",
+)
+namespace = parser.parse_args(namespace=Namespace())
+data = Problem.from_file(namespace.problem)
 
 
 manager = pywrapcp.RoutingIndexManager(
@@ -61,10 +90,11 @@ demand_callback_index = routing.RegisterUnaryTransitCallback(demand_callback)
 
 routing.SetArcCostEvaluatorOfAllVehicles(time_callback_with_service_index)
 
+max_feasible_time = data.time_windows[data.depot][1]
 routing.AddDimension(
     time_callback_with_service_index,
-    0,
-    data.time_windows[data.depot][1],
+    max_feasible_time,
+    max_feasible_time,
     False,
     "Time",
 )
@@ -93,8 +123,11 @@ for vehicle in range(data.vehicles_count):
     routing.AddVariableMinimizedByFinalizer(time_dimension.CumulVar(routing.End(vehicle)))
 
 search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+
 search_parameters.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+search_parameters.local_search_metaheuristic = routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+search_parameters.time_limit.FromMilliseconds(5000)
 
 assignment = routing.SolveWithParameters(search_parameters)
-solution = to_solution(assignment, data=data, routing=routing)
+solution = to_solution(assignment, data=data, routing=routing, manager=manager)
 print(solution)
