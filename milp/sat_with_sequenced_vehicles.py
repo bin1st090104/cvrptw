@@ -3,7 +3,7 @@ from ortools.linear_solver import pywraplp
 from parse import VehicleInfo, Customer
 
 
-def solve_cvrptw_milp_sat(
+def solve_cvrptw_milp_sat_with_sequenced_vehicles(
     original_customers: list[Customer],
     vehicle: VehicleInfo,
     limit_nodes: int = 25,
@@ -53,6 +53,7 @@ def solve_cvrptw_milp_sat(
         )
     )
 
+    # each customer is visited once
     for i in range(1, N - 1):
         solver.Add(
             solver.Sum(
@@ -84,6 +85,18 @@ def solve_cvrptw_milp_sat(
                 for i in range(1, N - 1)
             )
         )
+        if k + 1 < K:
+          solver.Add(
+            solver.Sum(
+                x[0, i, k + 1]
+                for i in range(1, N - 1)
+            )
+            <=
+            solver.Sum(
+                x[0, i, k]
+                for i in range(1, N - 1)
+            )
+          )
     for k in range(K):
         for i in range(1, N - 1):
             solver.Add(

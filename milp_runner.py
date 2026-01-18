@@ -1,3 +1,4 @@
+from milp.sat_with_sequenced_vehicles import solve_cvrptw_milp_sat_with_sequenced_vehicles
 from ortools.sat.cp_model_pb2 import CpSolverStatus
 from typing import Union
 from milp.cp_sat_2d import solve_cvrptw_milp_cp_sat_2d
@@ -278,14 +279,13 @@ def main():
     # --- A. CẤU HÌNH ---
 
     # 1. Chọn hàm solver bạn muốn dùng ở đây!
-    # CURRENT_SOLVER = solve_cvrptw_milp_sat      # Dùng cái này cho 3D
-    CURRENT_SOLVER = solve_cvrptw_milp_cp_sat_2d  # Dùng cái này cho 2D
+    CURRENT_SOLVER = solve_cvrptw_milp_sat_with_sequenced_vehicles
 
     config = BenchmarkConfig(
         input_folder=Path("testcases"),
         output_dir=Path("milp_results"),
-        output_name="cp_sat_2d_50.txt", # Đặt tên file output
-        limit_nodes=50,
+        output_name="sat_with_sequenced_vehicles_15.txt", # Đặt tên file output
+        limit_nodes=15,
         time_limit_sec=30,
         verbose=True
     )
