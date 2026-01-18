@@ -1,28 +1,17 @@
+#include "arrival.hpp"
 #include "cli.hpp"
-
-struct CustomerArrival
-{
-    size_t customer;
-
-    /// @brief Contrary to its name, this is the time when the customer is served,
-    /// which does not necessarily equal to the vehicle arrives.
-    ///
-    /// Note that: arrival_time + service_time = departure_time
-    uint64_t arrival_time;
-
-    explicit CustomerArrival(size_t customer, uint64_t arrival_time) : customer(customer), arrival_time(arrival_time) {}
-};
 
 struct Route
 {
 private:
-    std::vector<CustomerArrival> _customers;
+    std::vector<cvrptw::CustomerArrival> _customers;
     size_t _vehicle;
     uint64_t _total_time;
     uint64_t _total_demand;
 
 public:
-    explicit Route(size_t vehicle, const cvrptw::Problem &problem) : _vehicle(vehicle), _total_time(0), _total_demand(0)
+    explicit Route(size_t vehicle, const cvrptw::Problem &problem)
+        : _customers(), _vehicle(vehicle), _total_time(0), _total_demand(0)
     {
         _customers.emplace_back(problem.depot, 0);
     }
@@ -142,7 +131,7 @@ private:
     }
 
 public:
-    explicit IterationState(const cvrptw::Problem &problem) : _assigned(problem.customers_count(), false)
+    explicit IterationState(const cvrptw::Problem &problem) : _routes(), _assigned(problem.customers_count(), false)
     {
         _assigned[problem.depot] = true;
 

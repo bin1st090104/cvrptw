@@ -1,28 +1,17 @@
+#include "arrival.hpp"
 #include "cli.hpp"
-
-struct CustomerArrival
-{
-    size_t customer;
-
-    /// @brief Contrary to its name, this is the time when the customer is served,
-    /// which does not necessarily equal to the vehicle arrives.
-    ///
-    /// Note that: arrival_time + service_time = departure_time
-    uint64_t arrival_time;
-
-    explicit CustomerArrival(size_t customer, uint64_t arrival_time) : customer(customer), arrival_time(arrival_time) {}
-};
 
 struct Route
 {
 private:
-    std::vector<CustomerArrival> _customers;
+    std::vector<cvrptw::CustomerArrival> _customers;
     size_t _vehicle;
     uint64_t _total_time;
     uint64_t _total_demand;
 
 public:
-    explicit Route(size_t vehicle, const cvrptw::Problem &problem) : _vehicle(vehicle), _total_time(0), _total_demand(0)
+    explicit Route(size_t vehicle, const cvrptw::Problem &problem)
+        : _customers(), _vehicle(vehicle), _total_time(0), _total_demand(0)
     {
         _customers.emplace_back(problem.depot, 0);
     }
@@ -47,7 +36,7 @@ public:
         return _total_time;
     }
 
-    bool try_assign(size_t customer, const cvrptw::Problem &problem)
+    bool try_assign(size_t customer, const cvrptw::Problem &problem, uint64_t best)
     {
         if (_total_demand + problem.demands[customer] > problem.capacities[_vehicle])
         {
@@ -65,7 +54,13 @@ public:
             return false;
         }
 
-        _total_time = arrival_time + problem.service_times[customer] + problem.time_matrix[customer][problem.depot] - problem.time_matrix[last.customer][problem.depot];
+        auto total_time = arrival_time + problem.service_times[customer] + problem.time_matrix[customer][problem.depot] - problem.time_matrix[last.customer][problem.depot];
+        if (total_time >= best)
+        {
+            return false;
+        }
+
+        _total_time = total_time;
         _total_demand += problem.demands[customer];
 
         _customers.emplace_back(customer, arrival_time);
@@ -87,6 +82,7 @@ struct IterationState
 private:
     std::vector<Route> _routes;
     std::vector<bool> _assigned;
+    uint64_t _best;
 
     std::vector<Route> _solve(const cvrptw::Problem &problem, uint64_t stack, uint64_t &result)
     {
@@ -100,6 +96,7 @@ private:
             {
                 best_routes = _routes;
                 result = std::max(result, route.total_time());
+                _best = std::min(_best, result);
             }
         }
         else
@@ -114,7 +111,7 @@ private:
                 for (auto &route : _routes)
                 {
                     bool initially_empty = route.empty();
-                    if (route.try_assign(customer, problem))
+                    if (route.try_assign(customer, problem, _best))
                     {
                         _assigned[customer] = true;
 
@@ -142,7 +139,7 @@ private:
     }
 
 public:
-    explicit IterationState(const cvrptw::Problem &problem) : _assigned(problem.customers_count(), false)
+    explicit IterationState(const cvrptw::Problem &problem) : _routes(), _assigned(problem.customers_count(), false), _best(-1)
     {
         _assigned[problem.depot] = true;
 
