@@ -1,0 +1,13 @@
+Instance        | Status     | Time(s)  | Obj Val    | Valid  | Routes / Error
+------------------------------------------------------------------------------------------------------------------------
+C101.txt        | NO_SOL/TIMEOUT | 111.0948 | N/A        | -      | []
+C102.txt        | NO_SOL/TIMEOUT | 110.5896 | N/A        | -      | []
+C103.txt        | NO_SOL/TIMEOUT | 110.1842 | N/A        | -      | []
+C104.txt        | NO_SOL/TIMEOUT | 111.5347 | N/A        | -      | []
+C105.txt        | NO_SOL/TIMEOUT | 111.0683 | N/A        | -      | []
+C106.txt        | NO_SOL/TIMEOUT | 110.7191 | N/A        | -      | []
+C107.txt        | NO_SOL/TIMEOUT | 110.6010 | N/A        | -      | []
+C108.txt        | NO_SOL/TIMEOUT | 110.7416 | N/A        | -      | []
+C109.txt        | NO_SOL/TIMEOUT | 101.5715 | N/A        | -      | []
+
+Done! Total time: 1001.30s

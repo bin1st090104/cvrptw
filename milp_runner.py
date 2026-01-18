@@ -8,6 +8,7 @@ from milp.scip import solve_cvrptw_milp_scip
 from milp.scip_with_load_vars import solve_cvrptw_milp_scip_with_load_vars
 from milp.sat_with_load_vars import solve_cvrptw_milp_sat_with_load_vars
 from milp.sat_2d import solve_cvrptw_milp_sat_2d
+from milp.sat import solve_cvrptw_milp_sat
 from typing import Any
 from typing import Callable
 from pathlib import Path
@@ -279,14 +280,14 @@ def main():
     # --- A. CẤU HÌNH ---
 
     # 1. Chọn hàm solver bạn muốn dùng ở đây!
-    CURRENT_SOLVER = solve_cvrptw_milp_sat_with_sequenced_vehicles
+    CURRENT_SOLVER = solve_cvrptw_milp_gemini_scip
 
     config = BenchmarkConfig(
         input_folder=Path("testcases"),
         output_dir=Path("milp_results"),
-        output_name="sat_with_sequenced_vehicles_15.txt", # Đặt tên file output
-        limit_nodes=15,
-        time_limit_sec=30,
+        output_name="gemini_scip_100.txt", # Đặt tên file output
+        limit_nodes=100,
+        time_limit_sec=100,
         verbose=True
     )
 
@@ -320,10 +321,11 @@ def main():
 
             # Format output
             routes_str = str(res.routes) if res.status != "ERROR" else res.validation_msg
+            display_routes = (routes_str[:50] + '...') if len(routes_str) > 50 else routes_str
             valid_mark = "OK" if res.is_valid else "FAIL"
             if res.status == "NO_SOL/TIMEOUT": valid_mark = "-"
 
-            line = f"{res.instance_name:<15} | {res.status:<10} | {res.duration:<8.4f} | {res.obj_value:<10} | {valid_mark:<6} | {routes_str}"
+            line = f"{res.instance_name:<15} | {res.status:<10} | {res.duration:<8.4f} | {res.obj_value:<10} | {valid_mark:<6} | {display_routes}"
 
             f.write(line + "\n")
             if not res.is_valid and res.status not in ["NO_SOL/TIMEOUT", "ERROR"]:

@@ -53,7 +53,6 @@ def solve_cvrptw_milp_sat_with_sequenced_vehicles(
         )
     )
 
-    # each customer is visited once
     for i in range(1, N - 1):
         solver.Add(
             solver.Sum(
