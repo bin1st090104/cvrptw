@@ -1,0 +1,3 @@
+_target_: src.ortools_routing.RoutingSolver
+timeout: 10 # in seconds
+local_search: GLS

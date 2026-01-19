@@ -1,2 +1,0 @@
-_target_: src.exact.ExactSolver
-timeout: 10 # in seconds

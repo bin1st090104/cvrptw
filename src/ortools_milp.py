@@ -9,7 +9,7 @@ from utils.solution import Solution
 from generator import Instance
 
 
-class ExactSolver:
+class MILPSolver:
     def __init__(self, timeout: float = 1.0) -> None:
         self.timeout: float = timeout  # seconds
 
