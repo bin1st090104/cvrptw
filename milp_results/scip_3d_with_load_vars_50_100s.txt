@@ -1,0 +1,13 @@
+Instance        | Status     | Time(s)  | Obj Val    | Valid  | Routes / Error
+------------------------------------------------------------------------------------------------------------------------
+C101.txt        | OPTIMAL    | 36.3580  | 432.00     | OK     | [[0, 5, 3, 7, 8, 10, 11, 9, 6, 4, 2, 1, 0], [0, 20...
+C102.txt        | NO_SOL/TIMEOUT | 102.6146 | N/A        | -      | []
+C103.txt        | NO_SOL/TIMEOUT | 102.6012 | N/A        | -      | []
+C104.txt        | NO_SOL/TIMEOUT | 102.5433 | N/A        | -      | []
+C105.txt        | NO_SOL/TIMEOUT | 102.6743 | N/A        | -      | []
+C106.txt        | NO_SOL/TIMEOUT | 105.6795 | N/A        | -      | []
+C107.txt        | NO_SOL/TIMEOUT | 103.2647 | N/A        | -      | []
+C108.txt        | NO_SOL/TIMEOUT | 102.9676 | N/A        | -      | []
+C109.txt        | NO_SOL/TIMEOUT | 103.2265 | N/A        | -      | []
+
+Done! Total time: 869.42s

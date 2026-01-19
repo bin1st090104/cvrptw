@@ -281,14 +281,14 @@ def main():
     # --- A. CẤU HÌNH ---
 
     # 1. Chọn hàm solver bạn muốn dùng ở đây!
-    CURRENT_SOLVER = solve_cvrptw_milp_cp_sat_2d_optimized
+    CURRENT_SOLVER = solve_cvrptw_milp_sat_3d_with_load_vars
 
     config = BenchmarkConfig(
         input_folder=Path("testcases"),
         output_dir=Path("milp_results"),
-        output_name="cp_sat_2d_optimized_30_30s_1.txt", # Đặt tên file output
-        limit_nodes=30,
-        time_limit_sec=30,
+        output_name="sat_3d_with_load_vars_100_100s.txt", # Đặt tên file output
+        limit_nodes=100,
+        time_limit_sec=100,
         verbose=True
     )
 
