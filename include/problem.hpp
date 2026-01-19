@@ -33,12 +33,12 @@ namespace cvrptw
 
         static std::unique_ptr<Problem> from_file(const std::filesystem::path &path, size_t limit = -1);
 
-        constexpr size_t vehicles_count() const noexcept
+        inline size_t vehicles_count() const noexcept
         {
             return capacities.size();
         }
 
-        constexpr size_t customers_count() const noexcept
+        inline size_t customers_count() const noexcept
         {
             return demands.size();
         }

@@ -20,6 +20,13 @@ target_include_directories(
 )
 target_precompile_headers(branch_and_bound PRIVATE "${ROOT}/include/pch.hpp")
 
+add_executable(local_search "${ROOT}/src/local_search.cpp" "${COMMON}")
+target_include_directories(
+    local_search PRIVATE
+    "${ROOT}/include"
+)
+target_precompile_headers(local_search PRIVATE "${ROOT}/include/pch.hpp")
+
 add_executable(recursion "${ROOT}/src/recursion.cpp" "${COMMON}")
 target_include_directories(
     recursion PRIVATE
