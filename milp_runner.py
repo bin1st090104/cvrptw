@@ -286,9 +286,9 @@ def main():
     config = BenchmarkConfig(
         input_folder=Path("testcases"),
         output_dir=Path("milp_results"),
-        output_name="cp_sat_2d_optimized_30_30s_1.txt", # Đặt tên file output
-        limit_nodes=30,
-        time_limit_sec=30,
+        output_name="cp_sat_2d_optimized_101_100s.txt", # Đặt tên file output
+        limit_nodes=101,
+        time_limit_sec=100,
         verbose=True
     )
 
