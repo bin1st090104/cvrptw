@@ -1,0 +1,38 @@
+name: OR-Tools Local Search
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-matrix:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        local_search: [GLS, GD, SA, TS, GTS]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run experiment (local_search = ${{ matrix.local_search }})
+        run: |
+          python main.py \
+            dataset.n_customers=50 \
+            dataset.n_instances=10 \
+            alg=ortools_routing \
+            alg.local_search=${{ matrix.local_search }} \
+            alg.timeout=100
