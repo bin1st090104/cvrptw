@@ -1,0 +1,13 @@
+Instance        | Status     | Time(s)  | Obj Val    | Valid  | Routes / Error
+------------------------------------------------------------------------------------------------------------------------
+C101.txt        | FEASIBLE   | 111.3044 | 532.00     | OK     | [[0, 5, 3, 7, 8, 10, 11, 9, 6, 4, 2, 1, 0], [0, 43...
+C102.txt        | NO_SOL/TIMEOUT | 109.5545 | N/A        | -      | []
+C103.txt        | NO_SOL/TIMEOUT | 109.7396 | N/A        | -      | []
+C104.txt        | NO_SOL/TIMEOUT | 104.8259 | N/A        | -      | []
+C105.txt        | NO_SOL/TIMEOUT | 103.5628 | N/A        | -      | []
+C106.txt        | FEASIBLE   | 103.7023 | 556.00     | OK     | [[0, 5, 3, 7, 0], [0, 24, 25, 27, 29, 30, 28, 26, ...
+C107.txt        | NO_SOL/TIMEOUT | 104.4720 | N/A        | -      | []
+C108.txt        | NO_SOL/TIMEOUT | 105.7953 | N/A        | -      | []
+C109.txt        | NO_SOL/TIMEOUT | 107.2615 | N/A        | -      | []
+
+Done! Total time: 983.52s
