@@ -6,7 +6,7 @@ namespace cvrptw
     {
         if (argc < 2)
         {
-            throw std::runtime_error(std::format("Usage: {} <problem_file> [limit]", argv[0]));
+            throw std::runtime_error(std::format("Usage: {} <problem_file> [customers limit] [milliseconds limit]", argv[0]));
         }
 
         std::optional<size_t> limit;
@@ -15,7 +15,13 @@ namespace cvrptw
             limit = std::stoull(argv[2]);
         }
 
+        std::optional<std::chrono::milliseconds> time_limit;
+        if (argc >= 4)
+        {
+            time_limit = std::chrono::milliseconds(std::stoull(argv[3]));
+        }
+
         auto problem = Problem::from_file(argv[1], limit.value_or(-1));
-        return Arguments{std::move(problem), limit};
+        return Arguments{std::move(problem), limit, time_limit};
     }
 }

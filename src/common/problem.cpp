@@ -36,15 +36,29 @@ namespace cvrptw
             service_times.push_back(service_time);
         }
 
+        auto distance = [&](size_t i, size_t j)
+        {
+            uint64_t dx = xs[i] > xs[j] ? xs[i] - xs[j] : xs[j] - xs[i];
+            uint64_t dy = ys[i] > ys[j] ? ys[i] - ys[j] : ys[j] - ys[i];
+            return dx + dy;
+        };
+
+        std::vector<size_t> reordered(xs.size());
+        std::iota(reordered.begin(), reordered.end(), 0);
+        std::sort(
+            reordered.begin(), reordered.end(),
+            [&](size_t a, size_t b)
+            {
+                return distance(0, a) < distance(0, b);
+            });
+
         std::vector<uint64_t> capacities(vehicles_count, vehicle_capacity);
         std::vector<std::vector<uint64_t>> time_matrix(xs.size(), std::vector<uint64_t>(xs.size()));
         for (size_t i = 0; i < xs.size(); i++)
         {
             for (size_t j = 0; j < xs.size(); j++)
             {
-                uint64_t dx = xs[i] > xs[j] ? xs[i] - xs[j] : xs[j] - xs[i];
-                uint64_t dy = ys[i] > ys[j] ? ys[i] - ys[j] : ys[j] - ys[i];
-                time_matrix[i][j] = cvrptw::sqrt(dx * dx + dy * dy);
+                time_matrix[i][j] = distance(i, j);
             }
         }
 

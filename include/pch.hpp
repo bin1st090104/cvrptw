@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <filesystem>
@@ -8,6 +9,7 @@
 #include <fstream>
 #include <list>
 #include <map>
+#include <numeric>
 #include <set>
 #include <string>
 #include <vector>

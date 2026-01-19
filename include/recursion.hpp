@@ -10,11 +10,14 @@ namespace cvrptw
     protected:
         std::vector<Route> _routes;
         std::vector<bool> _assigned;
+        std::chrono::milliseconds _time_limit;
+        std::chrono::steady_clock::time_point _timer;
 
         virtual std::vector<Route> _solve(const Problem &problem, uint64_t stack, uint64_t &result) = 0;
 
     public:
-        explicit RecursionState(const Problem &problem) : _routes(), _assigned(problem.customers_count(), false)
+        explicit RecursionState(std::chrono::milliseconds time_limit, const Problem &problem)
+            : _routes(), _assigned(problem.customers_count(), false), _time_limit(time_limit)
         {
             _assigned[problem.depot] = true;
 
@@ -30,7 +33,7 @@ namespace cvrptw
             uint64_t result = 0;
             for (const auto &route : _routes)
             {
-                result = std::max(result, route.total_time());
+                result += route.total_cost();
             }
             return result;
         }
@@ -40,8 +43,14 @@ namespace cvrptw
             return _routes;
         }
 
+        inline std::chrono::milliseconds elapsed() const
+        {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - _timer);
+        }
+
         inline std::vector<Route> solve(const Problem &problem, uint64_t &result)
         {
+            _timer = std::chrono::steady_clock::now();
             return _solve(problem, 1, result);
         }
     };

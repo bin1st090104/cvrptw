@@ -33,7 +33,7 @@ namespace cvrptw
         return result;
     }
 
-    bool Route::try_assign(size_t customer, const cvrptw::Problem &problem, uint64_t best)
+    bool Route::try_assign(size_t customer, const cvrptw::Problem &problem, uint64_t &cost_change)
     {
         if (_total_demand + problem.demands[customer] > problem.capacities[_vehicle])
         {
@@ -51,13 +51,10 @@ namespace cvrptw
             return false;
         }
 
-        auto total_time = arrival_time + problem.service_times[customer] + problem.time_matrix[customer][problem.depot];
-        if (best > 0 && total_time >= best)
-        {
-            return false;
-        }
+        cost_change = problem.time_matrix[last.customer][customer] + problem.time_matrix[customer][problem.depot] - problem.time_matrix[last.customer][problem.depot];
+        auto total_cost = _total_cost + cost_change;
 
-        _total_time = total_time;
+        _total_cost = total_cost;
         _total_demand += problem.demands[customer];
 
         _customers.emplace_back(customer, arrival_time);
@@ -67,10 +64,101 @@ namespace cvrptw
     void Route::unassign(const cvrptw::Problem &problem)
     {
         auto customer = _customers.back(), last = _customers[_customers.size() - 2];
-        _total_time = last.arrival_time + problem.service_times[last.customer] + problem.time_matrix[last.customer][problem.depot];
+        _total_cost -= problem.time_matrix[last.customer][customer.customer] + problem.time_matrix[customer.customer][problem.depot] - problem.time_matrix[last.customer][problem.depot];
         _total_demand -= problem.demands[customer.customer];
 
         _customers.pop_back();
+    }
+
+    bool Route::move_10(Route *other, const cvrptw::Problem &problem)
+    {
+        if (this == other)
+        {
+            auto n = _customers.size();
+            for (size_t i = 1; i + 1 < n; i++)
+            {
+                auto base_gain = problem.time_matrix[_customers[i - 1].customer][_customers[i + 1].customer];
+                auto base_loss = problem.time_matrix[_customers[i - 1].customer][_customers[i].customer] +
+                                 problem.time_matrix[_customers[i].customer][_customers[i + 1].customer];
+
+                for (size_t j = i + 2; j < n + 1; j++)
+                {
+                    auto gain = base_gain + problem.time_matrix[_customers[j - 1].customer][_customers[i].customer] +
+                                (j < n ? problem.time_matrix[_customers[i].customer][_customers[j].customer] : problem.time_matrix[_customers[i].customer][problem.depot]);
+                    auto loss = base_loss + (j < n ? problem.time_matrix[_customers[j - 1].customer][_customers[j].customer] : problem.time_matrix[_customers[j - 1].customer][problem.depot]);
+                    if (gain >= loss)
+                    {
+                        continue;
+                    }
+
+                    std::vector<CustomerArrival> new_customers(_customers.begin(), _customers.end());
+                    std::rotate(new_customers.begin() + i, new_customers.begin() + i + 1, new_customers.begin() + j);
+
+                    if (!_recalculate_arrival_times(new_customers, problem, i))
+                    {
+                        continue;
+                    }
+
+                    _customers = std::move(new_customers);
+                    _total_cost = _total_cost + gain - loss;
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            auto n = _customers.size();
+            auto m = other->_customers.size();
+            for (size_t i = 1; i < n; i++)
+            {
+                auto this_gain = (i + 1 < n ? problem.time_matrix[_customers[i - 1].customer][_customers[i + 1].customer] : problem.time_matrix[_customers[i - 1].customer][problem.depot]);
+                auto this_loss = problem.time_matrix[_customers[i - 1].customer][_customers[i].customer] +
+                                 (i + 1 < n ? problem.time_matrix[_customers[i].customer][_customers[i + 1].customer] : problem.time_matrix[_customers[i].customer][problem.depot]);
+
+                for (size_t j = 1; j < m + 1; j++)
+                {
+                    auto new_this_demand = _total_demand - problem.demands[_customers[i].customer];
+                    auto new_other_demand = other->_total_demand + problem.demands[_customers[i].customer];
+                    if (new_other_demand > problem.capacities[other->_vehicle])
+                    {
+                        continue;
+                    }
+
+                    auto other_gain = problem.time_matrix[other->_customers[j - 1].customer][_customers[i].customer] +
+                                      (j < m ? problem.time_matrix[_customers[i].customer][other->_customers[j].customer] : problem.time_matrix[_customers[i].customer][problem.depot]);
+                    auto other_loss = (j < m ? problem.time_matrix[other->_customers[j - 1].customer][other->_customers[j].customer] : problem.time_matrix[other->_customers[j - 1].customer][problem.depot]);
+                    if (this_gain + other_gain >= this_loss + other_loss)
+                    {
+                        continue;
+                    }
+
+                    std::vector<CustomerArrival> new_customers_i(_customers.begin(), _customers.begin() + i);
+                    std::vector<CustomerArrival> new_customers_j(other->_customers.begin(), other->_customers.begin() + j);
+
+                    new_customers_i.insert(new_customers_i.end(), _customers.begin() + (i + 1), _customers.end());
+                    new_customers_j.push_back(_customers[i]);
+                    new_customers_j.insert(new_customers_j.end(), other->_customers.begin() + j, other->_customers.end());
+
+                    if (!_recalculate_arrival_times(new_customers_i, problem, i) || !_recalculate_arrival_times(new_customers_j, problem, j))
+                    {
+                        continue;
+                    }
+
+                    _customers = std::move(new_customers_i);
+                    other->_customers = std::move(new_customers_j);
+
+                    _total_cost = _total_cost + this_gain - this_loss;
+                    other->_total_cost = other->_total_cost + other_gain - other_loss;
+
+                    _total_demand = new_this_demand;
+                    other->_total_demand = new_other_demand;
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     bool Route::two_opt(Route *other, const cvrptw::Problem &problem)
@@ -83,6 +171,16 @@ namespace cvrptw
             {
                 for (size_t j = i + 2; j < n + 1; j++)
                 {
+                    auto gain = problem.time_matrix[_customers[i - 1].customer][_customers[j - 1].customer] +
+                                (j < n ? problem.time_matrix[_customers[i].customer][_customers[j].customer] : problem.time_matrix[_customers[i].customer][problem.depot]);
+                    auto loss = problem.time_matrix[_customers[i - 1].customer][_customers[i].customer] +
+                                (j < n ? problem.time_matrix[_customers[j - 1].customer][_customers[j].customer] : problem.time_matrix[_customers[j - 1].customer][problem.depot]);
+
+                    if (gain >= loss)
+                    {
+                        continue;
+                    }
+
                     std::vector<CustomerArrival> new_customers(_customers.begin(), _customers.begin() + i);
                     new_customers.insert(new_customers.end(), _customers.rbegin() + (n - j), _customers.rbegin() + (n - i));
                     new_customers.insert(new_customers.end(), _customers.begin() + j, _customers.end());
@@ -92,14 +190,9 @@ namespace cvrptw
                         continue;
                     }
 
-                    auto &last = new_customers.back();
-                    auto new_total_time = last.arrival_time + problem.service_times[last.customer] + problem.time_matrix[last.customer][problem.depot];
-                    if (new_total_time < _total_time)
-                    {
-                        _customers = std::move(new_customers);
-                        _total_time = new_total_time;
-                        return true;
-                    }
+                    _customers = std::move(new_customers);
+                    _total_cost = _total_cost + gain - loss;
+                    return true;
                 }
             }
         }
@@ -108,12 +201,48 @@ namespace cvrptw
             // Swap [i..) and [j..) tails
             auto n = _customers.size();
             auto m = other->_customers.size();
-            auto best = std::max(_total_time, other->_total_time);
+
+            uint64_t total_this_demand = 0;
+            for (size_t i = 1; i < n; i++)
+            {
+                total_this_demand += problem.demands[_customers[i].customer];
+            }
+
+            uint64_t total_other_demand = 0;
+            for (size_t j = 1; j < m; j++)
+            {
+                total_other_demand += problem.demands[other->_customers[j].customer];
+            }
+
             for (size_t i = 1; i < n + 1; i++)
             {
+                auto this_demand = total_this_demand;
+                if (i < n)
+                {
+                    total_this_demand -= problem.demands[_customers[i].customer];
+                }
+
+                auto other_demand = total_other_demand;
                 for (size_t j = 1; j < m + 1; j++)
                 {
-                    if (i == 1 && j == 1)
+                    // Check capacity constraints after swap
+                    uint64_t new_this_demand = _total_demand + other_demand - this_demand;
+                    uint64_t new_other_demand = other->_total_demand + this_demand - other_demand;
+                    if (j < m)
+                    {
+                        other_demand -= problem.demands[other->_customers[j].customer];
+                    }
+
+                    if (new_this_demand > problem.capacities[_vehicle] || new_other_demand > problem.capacities[other->_vehicle])
+                    {
+                        continue;
+                    }
+
+                    auto i_gain = j < m ? problem.time_matrix[_customers[i - 1].customer][other->_customers[j].customer] : problem.time_matrix[_customers[i - 1].customer][problem.depot];
+                    auto j_gain = i < n ? problem.time_matrix[other->_customers[j - 1].customer][_customers[i].customer] : problem.time_matrix[other->_customers[j - 1].customer][problem.depot];
+                    auto i_loss = i < n ? problem.time_matrix[_customers[i - 1].customer][_customers[i].customer] : problem.time_matrix[_customers[i - 1].customer][problem.depot];
+                    auto j_loss = j < m ? problem.time_matrix[other->_customers[j - 1].customer][other->_customers[j].customer] : problem.time_matrix[other->_customers[j - 1].customer][problem.depot];
+                    if (i_gain + j_gain >= i_loss + j_loss)
                     {
                         continue;
                     }
@@ -128,20 +257,16 @@ namespace cvrptw
                         continue;
                     }
 
-                    auto &last_i = new_customers_i.back();
-                    auto &last_j = new_customers_j.back();
-                    auto new_total_time_i = last_i.arrival_time + problem.service_times[last_i.customer] + problem.time_matrix[last_i.customer][problem.depot];
-                    auto new_total_time_j = last_j.arrival_time + problem.service_times[last_j.customer] + problem.time_matrix[last_j.customer][problem.depot];
-                    if (new_total_time_i < best && new_total_time_j < best)
-                    {
-                        _customers = std::move(new_customers_i);
-                        other->_customers = std::move(new_customers_j);
+                    _customers = std::move(new_customers_i);
+                    other->_customers = std::move(new_customers_j);
 
-                        _total_time = new_total_time_i;
-                        other->_total_time = new_total_time_j;
+                    _total_cost = _total_cost + i_gain - i_loss;
+                    other->_total_cost = other->_total_cost + j_gain - j_loss;
 
-                        return true;
-                    }
+                    _total_demand = new_this_demand;
+                    other->_total_demand = new_other_demand;
+
+                    return true;
                 }
             }
         }
