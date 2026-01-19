@@ -1,15 +1,16 @@
 from milp.cp_sat_2d_optimized import solve_cvrptw_milp_cp_sat_2d_optimized
 from milp.sat_3d_with_sequenced_vehicles import solve_cvrptw_milp_sat_3d_with_sequenced_vehicles
-from ortools.sat.python.cp_model_helper import CpSolverStatus
-from typing import Union
 from milp.cp_sat_2d import solve_cvrptw_milp_cp_sat_2d
-from ortools.sat.python import cp_model
 from milp.gemini_scip import solve_cvrptw_milp_gemini_scip
 from milp.scip_3d import solve_cvrptw_milp_scip_3d
 from milp.scip_3d_with_load_vars import solve_cvrptw_milp_scip_3d_with_load_vars
 from milp.sat_3d_with_load_vars import solve_cvrptw_milp_sat_3d_with_load_vars
 from milp.sat_2d import solve_cvrptw_milp_sat_2d
 from milp.sat_3d import solve_cvrptw_milp_sat_3d
+
+from typing import Union
+from ortools.sat.python import cp_model
+from ortools.sat.python.cp_model_helper import CpSolverStatus
 from typing import Any
 from typing import Callable
 from pathlib import Path
@@ -18,6 +19,10 @@ import time
 import math
 from typing import List, Tuple, Dict, Optional
 from ortools.linear_solver import pywraplp
+
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import numpy as np
 
 from parse import read_solomon_vrptw, VehicleInfo, Customer
 from milp.utils import *
@@ -37,6 +42,10 @@ SolverCallable = Callable[
 class BenchmarkConfig:
     input_folder: Path = Path("testcases")
     output_dir: Path = Path("results_milp")
+
+    img_output_dir: Path = Path("results_milp/plots") # Thư mục lưu ảnh
+    visualize: bool = True  # Bật/tắt vẽ hình
+
     output_name: str = "benchmark_results.txt"
     limit_nodes: int = 15
     time_limit_sec: int = 30
@@ -208,6 +217,97 @@ def extract_routes(
 
     return routes
 
+def plot_routes(
+    customers: List[Customer],
+    routes: List[List[int]],
+    instance_name: str,
+    save_dir: Path,
+    status: str = "UNKNOWN",
+    obj_val: str = "N/A"
+):
+    """
+    Vẽ biểu đồ CVRPTW theo phong cách Scientific:
+    - Depot hình vuông lớn.
+    - Màu sắc phân biệt theo tuyến (tab20).
+    - Mũi tên chỉ hướng đi.
+    """
+    if not routes: return
+
+    # Tạo figure vuông vức
+    fig, ax = plt.subplots(figsize=(8, 8))
+
+    # 1. Canvas settings
+    # Tự động scale theo dữ liệu nhưng giữ aspect ratio = equal (không bị méo hình)
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.5)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+
+    # Chuẩn bị dữ liệu toạ độ
+    x_coords = np.array([c.x for c in customers])
+    y_coords = np.array([c.y for c in customers])
+    n_nodes = len(customers)
+
+    # 2. Plot Nodes
+    # Vẽ khách hàng (Customers) - chấm tròn nhỏ
+    cust_idx = np.arange(1, n_nodes)
+    ax.scatter(x_coords[cust_idx], y_coords[cust_idx], s=30, marker="o", c='grey', alpha=0.6, label='Customer', zorder=2)
+
+    # Vẽ Depot - hình vuông lớn
+    ax.scatter(x_coords[0], y_coords[0], s=140, marker="s", c='black', label='Depot', zorder=3)
+
+    # Annotate ID (tuỳ chọn, chỉ hiện nếu ít node để đỡ rối)
+    if n_nodes <= 50:
+        for i in range(n_nodes):
+            ax.text(x_coords[i], y_coords[i], str(i), fontsize=8, color='black', ha='right', va='bottom', zorder=5)
+
+    # 3. Plot Routes
+    # Sử dụng colormap tab20 để có nhiều màu phân biệt rõ
+    cmap = plt.get_cmap("tab20")
+
+    for r_idx, route in enumerate(routes):
+        if len(route) < 2: continue
+
+        # Lấy màu theo index
+        color = cmap(r_idx % 20)
+
+        # Lấy toạ độ các điểm trong route
+        route_nodes = np.array(route, dtype=int)
+        pts = np.column_stack((x_coords[route_nodes], y_coords[route_nodes]))
+
+        # Vẽ đường nối (Line)
+        ax.plot(pts[:, 0], pts[:, 1], linewidth=2.0, color=color, alpha=0.8, zorder=4, label=f"Route {r_idx+1}")
+
+        # Vẽ mũi tên hướng đi (Arrows)
+        # Duyệt qua từng cặp điểm (u, v) trong route
+        for i in range(len(route) - 1):
+            u, v = route[i], route[i+1]
+            x1, y1 = x_coords[u], y_coords[u]
+            x2, y2 = x_coords[v], y_coords[v]
+
+            # Dùng annotate để vẽ mũi tên đẹp hơn arrow
+            ax.annotate(
+                "",
+                xy=(x2, y2), xytext=(x1, y1),
+                arrowprops=dict(arrowstyle="->", lw=1.5, color=color),
+                zorder=4
+            )
+
+    # 4. Finalize
+    ax.set_title(f"CVRPTW | {instance_name} | status={status} | obj={obj_val} | vehicles={len(routes)}")
+
+    # Legend bên ngoài nếu quá nhiều xe
+    if len(routes) <= 10:
+        ax.legend(loc='best', fontsize='small')
+
+    # Lưu ảnh
+    save_dir.mkdir(parents=True, exist_ok=True)
+    save_path = save_dir / f"{instance_name}.png"
+
+    fig.tight_layout()
+    fig.savefig(save_path, dpi=200)
+    plt.close(fig) # Giải phóng bộ nhớ
+
 # --- 3. CORE PROCESSING ---
 
 def process_single_instance(
@@ -261,6 +361,16 @@ def process_single_instance(
             routes = extract_routes(x, new_customers, vehicle, solver)
             is_valid, val_msg = validate_solution(routes, new_customers, vehicle, config.verbose)
 
+            if config.visualize and routes:
+                plot_routes(
+                    customers=new_customers,
+                    routes=routes,
+                    instance_name=file_name,
+                    save_dir=config.img_output_dir,
+                    status=status_str,   # <--- Thêm tham số này
+                    obj_val=obj_val      # <--- Thêm tham số này
+                )
+
         else:
             # Handle Failure Codes
             if status == cp_model.INFEASIBLE or status == pywraplp.Solver.INFEASIBLE:
@@ -281,13 +391,15 @@ def main():
     # --- A. CẤU HÌNH ---
 
     # 1. Chọn hàm solver bạn muốn dùng ở đây!
-    CURRENT_SOLVER = solve_cvrptw_milp_sat_3d_with_load_vars
+    CURRENT_SOLVER = solve_cvrptw_milp_sat_3d
 
     config = BenchmarkConfig(
         input_folder=Path("testcases"),
         output_dir=Path("milp_results"),
-        output_name="sat_3d_with_load_vars_100_100s.txt", # Đặt tên file output
-        limit_nodes=100,
+        output_name="sat_3d_50_100s.txt", # Đặt tên file output
+        img_output_dir=Path("milp_results/plots_sat_3d_50_100s"),
+        visualize=True,
+        limit_nodes=50,
         time_limit_sec=100,
         verbose=True
     )
