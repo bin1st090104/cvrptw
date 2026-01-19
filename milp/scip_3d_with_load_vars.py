@@ -3,7 +3,7 @@ from ortools.linear_solver import pywraplp
 from parse import VehicleInfo, Customer
 
 
-def solve_cvrptw_milp_scip(
+def solve_cvrptw_milp_scip_3d_with_load_vars(
     original_customers: list[Customer],
     vehicle: VehicleInfo,
     limit_nodes: int = 25,
@@ -35,9 +35,11 @@ def solve_cvrptw_milp_scip(
 
     x: dict[RouteKey, SolverVar] = {}
     t: dict[NodeVehicleKey, SolverVar] = {}
+    u: dict[NodeVehicleKey, SolverVar] = {}
     for k in range(K):
         for i in range(N):
             t[i, k] = solver.NumVar(customers[i].ready_time, customers[i].due_date, f't[{i}, {k}]')
+            u[i, k] = solver.NumVar(0, Q if i != 0 else 0, f'u[{i}, {k}]')
             for j in range(N):
                 if i == j or j == 0 or i == N - 1 or (i == 0 and j == N - 1):
                     continue
@@ -65,6 +67,9 @@ def solve_cvrptw_milp_scip(
 
     for (i, j, k) in x:
         solver.Add(t[j, k] >= t[i, k] + customers[i].service_time + dist[i][j] - BIG_M * (1 - x[i, j, k]))
+
+    for (i, j, k) in x:
+        solver.Add(u[j, k] >= u[i, k] + customers[j].demand - Q * (1 - x[i, j, k]))
 
     for k in range(K):
         solver.Add(
@@ -100,17 +105,17 @@ def solve_cvrptw_milp_scip(
                 )
             )
     for k in range(K):
-            solver.Add(
+        solver.Add(
+            solver.Sum(
+                customers[i].demand
+                *
                 solver.Sum(
-                    customers[i].demand
-                    *
-                    solver.Sum(
-                        x[j, i, k]
-                        for j in range(0, N - 1)
-                        if i != j
-                    )
-                    for i in range(1, N - 1)
-                ) <= Q
-            )
+                    x[j, i, k]
+                    for j in range(0, N - 1)
+                    if i != j
+                )
+                for i in range(1, N - 1)
+            ) <= Q
+        )
     status = solver.Solve()
     return solver, status, x, customers

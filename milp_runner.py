@@ -1,14 +1,15 @@
-from milp.sat_with_sequenced_vehicles import solve_cvrptw_milp_sat_with_sequenced_vehicles
-from ortools.sat.cp_model_pb2 import CpSolverStatus
+from milp.cp_sat_2d_optimized import solve_cvrptw_milp_cp_sat_2d_optimized
+from milp.sat_3d_with_sequenced_vehicles import solve_cvrptw_milp_sat_3d_with_sequenced_vehicles
+from ortools.sat.python.cp_model_helper import CpSolverStatus
 from typing import Union
 from milp.cp_sat_2d import solve_cvrptw_milp_cp_sat_2d
 from ortools.sat.python import cp_model
 from milp.gemini_scip import solve_cvrptw_milp_gemini_scip
-from milp.scip import solve_cvrptw_milp_scip
-from milp.scip_with_load_vars import solve_cvrptw_milp_scip_with_load_vars
-from milp.sat_with_load_vars import solve_cvrptw_milp_sat_with_load_vars
+from milp.scip_3d import solve_cvrptw_milp_scip_3d
+from milp.scip_3d_with_load_vars import solve_cvrptw_milp_scip_3d_with_load_vars
+from milp.sat_3d_with_load_vars import solve_cvrptw_milp_sat_3d_with_load_vars
 from milp.sat_2d import solve_cvrptw_milp_sat_2d
-from milp.sat import solve_cvrptw_milp_sat
+from milp.sat_3d import solve_cvrptw_milp_sat_3d
 from typing import Any
 from typing import Callable
 from pathlib import Path
@@ -156,7 +157,7 @@ def extract_routes(
     def is_selected(var):
         # CP-SAT Logic
         if isinstance(solver, cp_model.CpSolver):
-            return solver.Value(var) == 1
+            return solver.value(var) == 1
         # MILP Logic
         if hasattr(var, 'solution_value'):
             return var.solution_value() > 0.5
@@ -252,7 +253,7 @@ def process_single_instance(
 
             # 2. Get Objective Value (Handle differences)
             if isinstance(solver, cp_model.CpSolver):
-                obj_val = f"{solver.ObjectiveValue():.2f}"
+                obj_val = f"{solver.objective_value:.2f}"
             elif hasattr(solver, 'Objective'):
                 obj_val = f"{solver.Objective().Value():.2f}"
 
@@ -280,14 +281,14 @@ def main():
     # --- A. CẤU HÌNH ---
 
     # 1. Chọn hàm solver bạn muốn dùng ở đây!
-    CURRENT_SOLVER = solve_cvrptw_milp_gemini_scip
+    CURRENT_SOLVER = solve_cvrptw_milp_cp_sat_2d_optimized
 
     config = BenchmarkConfig(
         input_folder=Path("testcases"),
         output_dir=Path("milp_results"),
-        output_name="gemini_scip_100.txt", # Đặt tên file output
-        limit_nodes=100,
-        time_limit_sec=100,
+        output_name="cp_sat_2d_optimized_30_30s_1.txt", # Đặt tên file output
+        limit_nodes=30,
+        time_limit_sec=30,
         verbose=True
     )
 
