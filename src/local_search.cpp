@@ -98,6 +98,7 @@ int main(int argc, char **argv)
     {
         while (improved && state.elapsed() < time_limit)
         {
+            improved = false;
             for (auto &route : routes)
             {
                 for (auto &other_route : routes)
@@ -107,6 +108,13 @@ int main(int argc, char **argv)
             }
         }
 
+        // Here, either improved = false, or we exceeded the time limit
+        if (state.elapsed() >= time_limit)
+        {
+            break;
+        }
+
+        // improved = false here, try 2-opt
         for (auto &route : routes)
         {
             for (auto &other_route : routes)
