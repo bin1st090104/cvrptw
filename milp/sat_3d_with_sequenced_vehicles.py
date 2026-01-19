@@ -3,7 +3,7 @@ from ortools.linear_solver import pywraplp
 from parse import VehicleInfo, Customer
 
 
-def solve_cvrptw_milp_sat_with_load_vars(
+def solve_cvrptw_milp_sat_3d_with_sequenced_vehicles(
     original_customers: list[Customer],
     vehicle: VehicleInfo,
     limit_nodes: int = 25,
@@ -35,11 +35,9 @@ def solve_cvrptw_milp_sat_with_load_vars(
 
     x: dict[RouteKey, SolverVar] = {}
     t: dict[NodeVehicleKey, SolverVar] = {}
-    u: dict[NodeVehicleKey, SolverVar] = {}
     for k in range(K):
         for i in range(N):
             t[i, k] = solver.IntVar(customers[i].ready_time, customers[i].due_date, f't[{i}, {k}]')
-            u[i, k] = solver.IntVar(customers[i].demand, Q if i != 0 else 0, f'u[{i}, {k}]')
             for j in range(N):
                 if i == j or j == 0 or i == N - 1 or (i == 0 and j == N - 1):
                     continue
@@ -68,9 +66,6 @@ def solve_cvrptw_milp_sat_with_load_vars(
     for (i, j, k) in x:
         solver.Add(t[j, k] >= t[i, k] + customers[i].service_time + dist[i][j] - BIG_M * (1 - x[i, j, k]))
 
-    for (i, j, k) in x:
-        solver.Add(u[j, k] >= u[i, k] + customers[j].demand - Q * (1 - x[i, j, k]))
-
     for k in range(K):
         solver.Add(
             solver.Sum(
@@ -89,6 +84,18 @@ def solve_cvrptw_milp_sat_with_load_vars(
                 for i in range(1, N - 1)
             )
         )
+        if k + 1 < K:
+          solver.Add(
+            solver.Sum(
+                x[0, i, k + 1]
+                for i in range(1, N - 1)
+            )
+            <=
+            solver.Sum(
+                x[0, i, k]
+                for i in range(1, N - 1)
+            )
+          )
     for k in range(K):
         for i in range(1, N - 1):
             solver.Add(
@@ -104,5 +111,18 @@ def solve_cvrptw_milp_sat_with_load_vars(
                     if i != j
                 )
             )
+    for k in range(K):
+        solver.Add(
+            solver.Sum(
+                customers[i].demand
+                *
+                solver.Sum(
+                    x[j, i, k]
+                    for j in range(0, N - 1)
+                    if i != j
+                )
+                for i in range(1, N - 1)
+            ) <= Q
+        )
     status = solver.Solve()
     return solver, status, x, customers
