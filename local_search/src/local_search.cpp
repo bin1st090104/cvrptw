@@ -100,12 +100,18 @@ extern "C" LS_API uint8_t solve(
         time_matrix_vec.emplace_back(time_matrix[i], time_matrix[i] + customers_count);
     }
 
+    std::vector<std::pair<uint64_t, uint64_t>> time_windows;
+    for (size_t i = 0; i < customers_count; i++)
+    {
+        time_windows.emplace_back(ready_times[i], due_dates[i]);
+    }
+
     auto problem = std::make_unique<cvrptw::Problem>(
         "external_problem",
         std::vector<uint64_t>(capacities, capacities + vehicles_count),
         std::move(time_matrix_vec),
         std::vector<uint64_t>(demands, demands + customers_count),
-        std::vector<std::pair<uint64_t, uint64_t>>(),
+        std::move(time_windows),
         std::vector<uint64_t>(service_times, service_times + customers_count),
         depot);
 
