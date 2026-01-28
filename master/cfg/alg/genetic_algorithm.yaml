@@ -1,0 +1,7 @@
+_target_: src.genetic_algorithm.GeneticAlgorithmSolver
+timeout: 30 # in seconds
+population_size: 50
+elite_size: 5
+mutation_rate: 0.1
+tournament_size: 5
+seed: 42

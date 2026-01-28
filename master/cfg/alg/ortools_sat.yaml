@@ -1,0 +1,2 @@
+_target_: src.ortools_sat.SATSolver
+timeout: 10

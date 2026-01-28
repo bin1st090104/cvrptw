@@ -1,0 +1,6 @@
+_target_: src.simulated_annealing.SimulatedAnnealingSolver
+timeout: 30 # in seconds
+initial_temp: 100.0
+cooling_rate: 0.9995
+min_temp: 0.01
+seed: 42

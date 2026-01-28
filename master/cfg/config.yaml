@@ -1,0 +1,15 @@
+defaults:
+  - _self_
+  - alg: lns
+
+dataset:
+  seed: 42
+  n_customers: 100
+  n_instances: 1
+  mode: e # e: easy, m: medium, h: hard
+
+visualizer:
+  _target_: utils.visualizer.Visualizer
+  save_dir: images/
+  use: true
+  verbose: false

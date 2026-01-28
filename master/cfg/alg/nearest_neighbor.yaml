@@ -1,0 +1,2 @@
+_target_: src.nearest_neighbor.NearestNeighborSolver
+timeout: 10 # in seconds

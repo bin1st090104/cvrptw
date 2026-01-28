@@ -1,0 +1,5 @@
+_target_: src.tabu_search.TabuSearchSolver
+timeout: 30 # in seconds
+tabu_tenure: 20
+max_iter_no_improve: 100
+seed: 42

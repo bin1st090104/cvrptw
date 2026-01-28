@@ -1,0 +1,2 @@
+_target_: src.ortools_milp.MILPSolver
+timeout: 10 # in seconds

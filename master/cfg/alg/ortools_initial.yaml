@@ -1,0 +1,2 @@
+_target_: src.ortools_initial.InitialSolver
+timeout: 10
