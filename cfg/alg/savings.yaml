@@ -1,0 +1,2 @@
+_target_: src.savings_algorithm.SavingsSolver
+timeout: 10 # in seconds

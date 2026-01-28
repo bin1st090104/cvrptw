@@ -1,0 +1,3 @@
+_target_: src.insertion_heuristic.InsertionSolver
+timeout: 10 # in seconds
+variant: regret # options: 'cheapest', 'farthest', 'regret'
